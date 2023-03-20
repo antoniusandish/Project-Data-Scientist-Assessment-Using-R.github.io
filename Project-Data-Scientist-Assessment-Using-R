@@ -1,0 +1,491 @@
+Project : Analisis Data COVID19 di Indonesia Menggunakan bahasa pemrograman R
+Langkah 1
+Melakukan eksplorasi dan analisis mengenai COVID-19 di Indonesia. Data yang pergunakan diambil langsung dari API (Application Programming Interface) yang tersedia di covid19.go.id.
+Membuat vektor karakter dengan 3 elemen :
+bersatulawancovid
+bersatulawancovid <- c("cuci tangan","pakai masker","jaga jarak")
+bersatulawancovid
+Output
+> bersatulawancovid
+[1] "cuci tangan"  "pakai masker" "jaga jarak"
+Langkah 2. Mengakses API covid.go.id
+Mengakses API adalah dengan menggunakan fungsi GET() dari paket httr. Simpan hasil fungsi tersebut dalam obyek bernama resp
+Dataset beralamat: https://storage.googleapis.com/dataset/update.json
+library(httr)
+set_config(config(ssl_verifypeer = 0L))
+resp <- GET ("https://storage.googleapis.com/dqlab-dataset/update.json")
+Tiga informasi utama dalam sebuah respon API, yaitu status, headers, dan body.Status memiliki informasi apakah permintaan Anda berhasil atau tidak dan dinyatakan dalam status code, headers umumnya mengandung informasi metadata, sedangkan body berisikan konten atas permintaan yang telah dibuat.
+Status Code
+Ada beberapa jenis status code yang umumnya dijumpai, antara lain:
+200 Artinya permintaan sukses dipenuhi.
+404 Artinya berkas yang diminta tidak dapat ditemukan.
+403 Artinya akses permintaan ditolak.
+500 Artinya terjadi kesalahan pada server.
+
+Menggunakan fungsi status_code() untuk mengetahui status atas permintaan melalui API.
+library(httr)
+set_config(config(ssl_verifypeer = 0L))
+resp <- GET("https://storage.googleapis.com/dqlab-dataset/update.json")
+status_code (resp)
+Output
+> status_code (resp)
+[1] 200
+Dapat mengetahui status permintaan dengan cara mengakses elemen dari resp dapat diakses dengan menggunakan operator $ pada obyek resp
+library(httr)
+set_config(config(ssl_verifypeer = 0L))
+resp <- GET("https://storage.googleapis.com/dqlab-dataset/update.json")
+
+resp$status_code
+identical(resp$status_code, status_code(resp))
+Output
+> resp$status_code
+[1] 200
+
+> identical(resp$status_code, status_code(resp))
+[1] TRUE
+Headers API
+Fungsi headers() pada resp untuk mengetahui metadata apa saja yang tersimpan, elemen content-type, waktu informasi diperbaharui.
+library(httr)
+set_config(config(ssl_verifypeer = 0L))
+resp <- GET("https://storage.googleapis.com/dqlab-dataset/update.json")
+
+headers(resp)
+Output
+> headers(resp)
+$`x-guploader-uploadid`
+[1] "ADPycduKBeM2NCScVl_FCbllUoQcP_89bl8F60Yi8hqmv02iHO-zB_npW2U1Ib3Bd8I3xqbQCSQxIAdXh1bfCtKCm_jWjQ"
+
+$`x-goog-generation`
+[1] "1654513959565478"
+
+$`x-goog-metageneration`
+[1] "1"
+
+$`x-goog-stored-content-encoding`
+[1] "identity"
+
+$`x-goog-stored-content-length`
+[1] "311897"
+
+$`x-goog-hash`
+[1] "crc32c=GMMqEA=="
+
+$`x-goog-hash`
+[1] "md5=8aR/820+lfYyWNlv5bLUOQ=="
+
+$`x-goog-storage-class`
+[1] "STANDARD"
+
+$`accept-ranges`
+[1] "bytes"
+
+$`content-length`
+[1] "311897"
+
+$server
+[1] "UploadServer"
+
+$date
+[1] "Thu, 30 Jun 2022 06:01:04 GMT"
+
+$expires
+[1] "Thu, 30 Jun 2022 07:01:04 GMT"
+
+$`cache-control`
+[1] "public, max-age=3600"
+
+$age
+[1] "1793"
+
+$`last-modified`
+[1] "Mon, 06 Jun 2022 11:12:39 GMT"
+
+$etag
+[1] "\"f1a47ff36d3e95f63258d96fe5b2d439\""
+
+$`content-type`
+[1] "application/json"
+
+$`alt-svc`
+[1] "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000,h3-Q050=\":443\"; ma=2592000,h3-Q046=\":443\"; ma=2592000,h3-Q043=\":443\"; ma=2592000,quic=\":443\"; ma=2592000; v=\"46,43\""
+
+attr(,"class")
+[1] "insensitive" "list"
+Mengekstrak isi Respon
+Respon API dengan status code 200 menyatakan bahwa permintaan berhasil dipenuhi dan konten yang diminta tersedia untuk diekstrak. Fungsi headers() untuk mengetahui bahwa konten yang diminta tersedia dalam bentuk application/json, yaitu berkas JSON.
+Mengekstrak konten tersebut dengan menggunakan fungsi content(). Jalankan fungsi tersebut pada obyek resp dan tambahkan argumen as = "parsed" dan simplifyVector = TRUE. Simpanlah hasilnya sebagai cov_id_raw
+library(httr)
+set_config(config(ssl_verifypeer = 0L))
+resp <- GET("https://storage.googleapis.com/dqlab-dataset/update.json")
+cov_id_raw <- content(resp, as = "parsed", simplifyVector = TRUE)
+Output
+> library(httr)
+
+> set_config(config(ssl_verifypeer = 0L))
+
+> resp <- GET("https://storage.googleapis.com/dqlab-dataset/update.json")
+
+> cov_id_raw <- content(resp, as = "parsed", simplifyVector = TRUE)
+Menggunakan fungsi length() dan names() cobalah amati ada berapa komponen serta apa saja nama komponen dalam obyek cov_id_raw Kemudian ekstraklah komponen ke-2 dan simpan dengan nama cov_id_update
+length(cov_id_raw)
+names(cov_id_raw)
+cov_id_update <- cov_id_raw$update
+Output
+> length(cov_id_raw)
+[1] 2
+
+> names(cov_id_raw)
+[1] "data"   "update"
+
+> cov_id_update <- cov_id_raw$update
+Langkah 3. Analisa Data
+Menganalisa data pada obyek cov_id_update
+Kapan tanggal pembaharuan data penambahan kasus?
+Berapa jumlah penambahan kasus sembuh?
+Berapa jumlah penambahan kasus meninggal?
+Berapa jumlah total kasus positif hingga saat ini?
+Berapa jumlah total kasus meninggal hingga saat ini?
+
+lapply(cov_id_update,names)
+cov_id_update$penambahan$tanggal
+cov_id_update$penambahan$jumlah_sembuh
+cov_id_update$penambahan$jumlah_meninggal
+cov_id_update$total$jumlah_positif
+cov_id_update$total$jumlah_meninggal
+Output
+> lapply(cov_id_update,names)
+$penambahan
+[1] "jumlah_positif"   "jumlah_meninggal" "jumlah_sembuh"    "jumlah_dirawat"  
+[5] "tanggal"          "created"         
+
+$harian
+ [1] "key_as_string"        "key"                  "doc_count"           
+ [4] "jumlah_meninggal"     "jumlah_sembuh"        "jumlah_positif"      
+ [7] "jumlah_dirawat"       "jumlah_positif_kum"   "jumlah_sembuh_kum"   
+[10] "jumlah_meninggal_kum" "jumlah_dirawat_kum"  
+
+$total
+[1] "jumlah_positif"   "jumlah_dirawat"   "jumlah_sembuh"    "jumlah_meninggal"
+
+> cov_id_update$penambahan$tanggal
+[1] "2022-05-14"
+
+> cov_id_update$penambahan$jumlah_sembuh
+[1] 416
+
+> cov_id_update$penambahan$jumlah_meninggal
+[1] 5
+
+> cov_id_update$total$jumlah_positif
+[1] 6050519
+
+> cov_id_update$total$jumlah_meninggal
+[1] 156453
+Langkah 4. Menganalisa Data Covid-19 Provinsi Jawa Barat
+Info dataset : https://storage.googleapis.com/dqlab-dataset/prov_detail_JAWA_BARAT.json
+resp_jabar <- GET("https://storage.googleapis.com/dqlab-dataset/prov_detail_JAWA_BARAT.json")
+cov_jabar_raw <- content(resp_jabar, as = "parsed", simplifyVector = TRUE)
+fungsi names() pada cov_jabar_raw tersebut untuk mengetahui nama-nama elemen utama yang tersedia.
+Berapa jumlah total kasus COVID-19 di Jawa Barat?
+Berapa persentase kematian akibat COVID-19 di Jawa Barat?
+Berapa persentase tingkat kesembuhan dari COVID-19 di Jawa Barat?
+
+library(httr)
+set_config(config(ssl_verifypeer = 0L))
+resp_jabar <- GET("https://storage.googleapis.com/dqlab-dataset/prov_detail_JAWA_BARAT.json")
+cov_jabar_raw <- content(resp_jabar,as = "parsed",simplifyVector = TRUE)
+
+names(cov_jabar_raw)
+cov_jabar_raw$kasus_total
+cov_jabar_raw$meninggal_persen
+cov_jabar_raw$sembuh_persen
+Output
+> names(cov_jabar_raw)
+ [1] "last_date"            "provinsi"             "kasus_total"         
+ [4] "kasus_tanpa_tgl"      "kasus_dengan_tgl"     "meninggal_persen"    
+ [7] "meninggal_tanpa_tgl"  "meninggal_dengan_tgl" "sembuh_persen"       
+[10] "sembuh_tanpa_tgl"     "sembuh_dengan_tgl"    "list_perkembangan"   
+[13] "data"                
+
+> cov_jabar_raw$kasus_total
+[1] 1105134
+
+> cov_jabar_raw$meninggal_persen
+[1] 1.425619
+
+> cov_jabar_raw$sembuh_persen
+[1] 98.28238
+Memperoleh Informasi yang Lebih Lengkap
+Data historis perkembangan COVID-19 tersebut tersimpan dengan nama list_perkembangan. Silakan ekstrak data tersebut dari cov_jabar_raw dan simpanlah hasilnya sebagai obyek bernama cov_jabar. Mengamati struktur cov_jabar menggunakan fungsi str() dan head().
+cov_jabar <- cov_jabar_raw$list_perkembangan
+str(cov_jabar)
+head(cov_jabar)
+Output
+> cov_jabar <- cov_jabar_raw$list_perkembangan
+
+> str(cov_jabar)
+'data.frame': 785 obs. of  9 variables:
+ $ tanggal                     : num  1.58e+12 1.58e+12 1.58e+12 1.58e+12 1.58e+12 ...
+ $ KASUS                       : int  1 1 1 1 0 0 0 0 0 1 ...
+ $ MENINGGAL                   : int  1 0 0 0 0 0 0 0 1 0 ...
+ $ SEMBUH                      : int  0 0 0 0 0 0 0 0 0 0 ...
+ $ DIRAWAT_OR_ISOLASI          : int  0 1 1 1 0 0 0 0 -1 1 ...
+ $ AKUMULASI_KASUS             : int  1 2 3 4 4 4 4 4 4 5 ...
+ $ AKUMULASI_SEMBUH            : int  0 0 0 0 0 0 0 0 0 0 ...
+ $ AKUMULASI_MENINGGAL         : int  1 1 1 1 1 1 1 1 2 2 ...
+ $ AKUMULASI_DIRAWAT_OR_ISOLASI: int  0 1 2 3 3 3 3 3 2 3 ...
+
+> head(cov_jabar)
+       tanggal KASUS MENINGGAL SEMBUH DIRAWAT_OR_ISOLASI AKUMULASI_KASUS
+1 1.583194e+12     1         1      0                  0               1
+2 1.583280e+12     1         0      0                  1               2
+3 1.583366e+12     1         0      0                  1               3
+4 1.583453e+12     1         0      0                  1               4
+5 1.583539e+12     0         0      0                  0               4
+6 1.583626e+12     0         0      0                  0               4
+  AKUMULASI_SEMBUH AKUMULASI_MENINGGAL AKUMULASI_DIRAWAT_OR_ISOLASI
+1                0                   1                            0
+2                0                   1                            1
+3                0                   1                            2
+4                0                   1                            3
+5                0                   1                            3
+6                0                   1                            3
+Menjinakkan Data
+Beberapa kejanggalan pada data cov_jabar pada kolom tanggal dan format penulisan kolom yang tidak konsisten.
+Aktifkan paket dplyr yang akan dipergunakan untuk melakukan pengolahan data, Untuk menjinakan data cov_jabar
+Menghapus kolom "DIRAWAT_OR_ISOLASI" dan "AKUMULASI_DIRAWAT_OR_ISOLASI"
+Menghapus semua kolom yang berisi nilai kumulatif
+Mengganti nama kolom "KASUS" menjadi "kasus_baru"
+Merubah format penulisan kolom berikut menjadi huruf kecil
+
+Kolom MENINGGAL
+Kolom SEMBUH
+
+5. Memperbaiki data pada kolom tanggal
+Menggunakan operator pipe (%>%) untuk merangkai fungsi menjadi sebuah pipeline. Simpan hasil pengolahan Anda dengan nama new_cov_jabar.
+library(dplyr)
+new_cov_jabar <-
+  cov_jabar %>% 
+  select(-contains("DIRAWAT_OR_ISOLASI")) %>% 
+  select(-starts_with("AKUMULASI")) %>% 
+  rename(
+    kasus_baru = kasus,
+    meninggal = MENINGGAL,
+    sembuh = sembuh
+    ) %>% 
+  mutate(
+    tanggal = as.POSIXct(tanggal / 1000, origin = "1970-01-01"),
+    tanggal = as.Date(tanggal)
+  )
+str(new_cov_jabar)
+Output
+> new_cov_jabar <-
++   cov_jabar %>% 
++   select(-contains("DIRAWAT_OR_ISOLASI")) %>% 
++   select(-starts_with("AKUMULASI")) %>% 
++   rename(
++     kasus_baru = kasus,
++     meninggal = MENINGGAL,
++     sembuh = sembuh
++     ) %>% 
++   mutate(
++     tanggal = as.POSIXct(tanggal / 1000, origin = "1970-01-01"),
++     tanggal = as.Date(tanggal)
++   )
+Menunjukkan Melalui Gambar
+Memulai merancang visualisasi yang memiliki estetika dengan menggunakan paket ggplot2 dan paket hrbrthemes
+Berdasarkan templat tersebut, komponen utama untuk membuat visualisasi antara lain adalah tabel data, kolom data, serta bentuk geometri untuk mempresentasikan data. membuat scatter-plot yang diperlukan adalah bentuk geometri titik (geom_col()), line-chart memerlukan geometri garis (geom_line()), sedangkan bar-chart memerlukan bentuk geometri batang atau kolom (geom_bar() atau geom_col()).
+library(ggplot2)
+library(hrbrthemes)
+ggplot(data = new_cov_jabar, aes(x = tanggal, y = kasus_baru)) +
+  geom_col()
+Outputlibrary(ggplot2)
+library(hrbrthemes)
+ggplot(new_cov_jabar, aes(tanggal, kasus_baru)) +
+  geom_col(fill = "salmon") +
+  labs(
+    x = NULL,
+    y = "Jumlah kasus",
+    title = "Kasus Harian Positif COVID-19 di Jawa Barat",
+    subtitle = "Terjadi pelonjakan kasus di awal bulan Juli akibat klaster Secapa AD Bandung",
+    caption = "Sumber data: covid.19.go.id"
+  ) +
+  theme_ipsum(
+    base_size = 13,
+    plot_title_size = 21,
+    grid = "Y",
+    ticks = TRUE
+  ) +
+  theme(plot.title.position = "plot")
+Output
+Grafik untuk Kasus Sembuh
+library(ggplot2)
+library(hrbrthemes)
+ggplot(new_cov_jabar, aes(tanggal, sembuh)) +
+  geom_col(fill = "olivedrab2") +
+  labs(
+    x = NULL,
+    y = "Jumlah kasus",
+    title = "Kasus Harian Sembuh Dari COVID-19 di Jawa Barat",
+    caption = "Sumber data: covid.19.go.id"
+  ) +
+  theme_ipsum(
+    base_size = 13,
+    plot_title_size = 21,
+    grid = "Y",
+    ticks = TRUE
+  ) +
+  theme(plot.title.position = "plot")
+Grafik untuk Kasus Meninggal
+library(ggplot2)
+library(hrbrthemes)
+ggplot(new_cov_jabar, aes(tanggal, meninggal)) +
+  geom_col(fill = "darkslategray4") +
+  labs(
+    x = NULL,
+    y = "Jumlah kasus",
+    title = "Kasus Harian Meninggal Akibat COVID-19 di Jawa Barat",
+    caption = "Sumber data: covid.19.go.id"
+  ) +
+  theme_ipsum(
+    base_size = 13, 
+    plot_title_size = 21,
+    grid = "Y",
+    ticks = TRUE
+  ) +
+  theme(plot.title.position = "plot")
+Mencoba mengamati bagaimana perkembangan kasus dalam rentang waktu pekanan. Mudah bekerja dengan data tanggal apabila menggunakan paket lubridate. Adapun yang akan digunakan untuk mengekstrak informasi pekan dalam satu tahun adalah fungsi week(). Simpanlah hasilnya sebagai cov_jabar_pekanan. Menggunakan fungsi glimpse() dari dplyr untuk melakukan inspeksi data.
+library(dplyr)
+library(lubridate)
+
+cov_jabar_pekanan <- new_cov_jabar %>% 
+  count(
+    tahun = year(tanggal),
+    pekan_ke = week(tanggal),
+    wt = kasus_baru,
+    name = "jumlah"
+  )
+
+glimpse(cov_jabar_pekanan)
+Apakah pekan ini lebih baik dari pekan kemarin, maka melakukan kalkulasi sederhana dengan tahapan :
+Membuat kolom baru yang berisi jumlah kasus baru dalam satu pekan sebelumnya. Kolom ini diberi nama "jumlah_pekanlalu".
+Mengganti nilai NA pada kolom "jumlah_pekanlalu" dengan nilai 0
+Melakukan komparasi antara kolom "jumlah" dengan kolom "jumlah_pekanlalu". Hasil komparasi ini disimpan dalam kolom baru dengan nama "lebih_baik", isinya adalah TRUE apabila jumlah kasus baru pekan ini lebih rendah dibandingkan jumlah kasus pekan lalu
+
+Menggunakan fungsi lag() dari dplyr untuk membuat kolom "jumlah_pekanlalu". Fungsi tersebut dituliskan sebagai dplyr::lag() untuk menghindari konflik dengan fungsi lag() dari paket stats. Inspeksi hasil pekerjaan dengan menggunakan fungsi glimpse().
+library(dplyr)
+cov_jabar_pekanan <-
+  cov_jabar_pekanan %>% 
+  mutate(
+    jumlah_pekanlalu = dplyr::lag(jumlah, 1),
+    jumlah_pekanlalu = ifelse(is.na(jumlah_pekanlalu), 0, jumlah_pekanlalu),
+    lebih_baik = jumlah < jumlah_pekanlalu
+  )
+glimpse(cov_jabar_pekanan)
+Membuat Bar Chart
+library(ggplot2)
+library(hrbrthemes)
+
+ggplot(cov_jabar_pekanan [cov_jabar_pekanan$tahun==2020,], aes(pekan_ke, jumlah, fill = lebih_baik)) +
+geom_col(show.legend = FALSE) +
+scale_x_continuous(breaks = 9:29, expand = c(0,0)) +
+scale_fill_manual(values = c("TRUE" = "seagreen3", "FALSE"= "salmon")) +
+labs(
+ x = NULL,
+ y = "Jumlah kasus",
+ title = "Kasus Pekanan Positif COVID-19 di Jawa Barat",
+ subtitle = "Kolom hijau menunjukan penambahan kasus baru lebih sedikit dibandingkan satu pekan sebelumnya",
+ caption = "Sumber data: covid.19.go.id"
+) +
+theme_ipsum(
+ base_size = 13,
+ plot_title_size = 21,
+ grid = "Y",
+ ticks = TRUE 
+)+
+theme(plot.title.position = "plot")
+Pola dan Dinamika
+Jumlah kasus aktif dapat dihitung dengan cara mengurangi jumlah akumulasi positif dengan jumlah akumulasi sembuh dan jumlah akumulasi meninggal. Menggunakan fungsi cumsum() untuk menghitung nilai akumulasi dari suatu vektor numerik.
+library(dplyr)
+cov_jabar_akumulasi <- 
+  new_cov_jabar %>% 
+  transmute(
+    tanggal,
+    akumulasi_aktif = cumsum(kasus_baru) - cumsum(sembuh) - cumsum(meninggal),
+    akumulasi_sembuh = cumsum(sembuh),
+    akumulasi_meninggal = cumsum(meninggal)
+  )
+
+tail(cov_jabar_akumulasi)
+Membuat Line Chart
+Buat line-chart pola kasus aktif dengan menggunakan fungsi geom_line(). Menggunakan templat kode berikut untuk membuat grafik menggunakan ggplot2():
+library(ggplot2)
+ggplot(data = cov_jabar_akumulasi, aes(x = tanggal, y = akumulasi_aktif)) +
+  geom_line()
+Kabar Buruk dan Kabar Baik
+Membuat grafik komparasi antara akumulasi kasus aktif, kasus sembuh, dan kasus meninggal.
+Menggunakan data cov_jabar_akumulasi, kemudian buat tiga layer geom_line() untuk setiap kolom satu per satu dengan warna garis yang berbeda
+Melakukan pivot pada data cov_jabar_akumulasi, kemudian buat satu layer geom_line() dengan menggunakan colour aesthetic
+
+Transformasi Data
+Menggunakan fungsi gather() dari paket tidyr untuk mentransformasi data cov_jabar_akumulasi. Data tersebut akan dirubah dari yang semula berformat wide menjadi format long. AKtifkanlah paket tidyr terlebih dahulu untuk melakukan pivot data. Simpan hasil transformasi data tersebut sebagai cov_jabar_akumulasi_pivot. Perhatikan hasil dari fungsi dim() sebelum dan setelah melakukan transformasi data.
+library(dplyr)
+library(tidyr)
+
+dim(cov_jabar_akumulasi)
+
+cov_jabar_akumulasi_pivot <- 
+  cov_jabar_akumulasi %>% 
+  gather(
+    key = "kategori",
+    value = "jumlah",
+    -tanggal
+  ) %>% 
+  mutate(
+    kategori = sub(pattern = "akumulasi_", replacement = "", kategori)
+  )
+
+dim(cov_jabar_akumulasi_pivot)
+
+glimpse(cov_jabar_akumulasi_pivot)
+pivot_longer()
+Menggunakan fungsi pivot_longer() sebagai pengganti gather() dan pivot_wider() sebagai pengganti spread(). pivot_longer() dan pivot_wider() memiliki fitur yang lebih lengkap dibandingkan gather() dan spread(). Proses transformasi cov_jabar_akumulasi menjadi cov_jabar_akumulasi_pivot dapat dikerjakan dengan menggunakan pivot_longer()
+cov_jabar_akumulasi_pivot <-
+  cov_jabar_akumulasi %>%
+pivot_longer (
+  cols = -tanggal,
+  names_to = "kategori",
+  names_prefix = "akumulasi_"
+  values_to = "jumlah"
+)
+Membuat grafik komparasi antara akumulasi kasus aktif, kasus sembuh dan kasus meninggal:
+library(ggplot2)
+library(hrbrthemes)
+ggplot(cov_jabar_akumulasi_pivot, aes(tanggal, jumlah, colour = (kategori))) +
+  geom_line(size = 0.9) +
+  scale_y_continuous(sec.axis = dup_axis(name = NULL)) +
+  scale_colour_manual(
+    values = c(
+      "aktif" = "salmon",
+      "meninggal" = "darkslategray4",
+      "sembuh" = "olivedrab2"
+    ),
+    labels = c("Aktif", "Meninggal", "Sembuh")
+  ) +
+  labs(
+    x = NULL,
+    y = "Jumlah kasus akumulasi",
+    colour = NULL,
+    title = "Dinamika Kasus COVID-19 di Jawa Barat",
+    caption = "Sumber data: covid.19.go.id"
+  ) +
+  theme_ipsum(
+    base_size = 13,
+    plot_title_size = 21,
+    grid = "Y",
+    ticks = TRUE
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "top"
+  )
